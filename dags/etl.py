@@ -1,16 +1,16 @@
 from airflow import DAG
-from airflow.providers.http.operators.http import SimpleHttpOperator
+from airflow.providers.http.operators.http import HttpOperator
 from airflow.decorators import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.dates import days_ago
+from datetime import datetime, timedelta
 import json
 
 
 ## Define the DAG
 with DAG(
     dag_id='nasa_apod_postgres',
-    start_date=days_ago(1),
-    schedule_interval='@daily',
+    start_date=datetime.now() - timedelta(days=1),
+    schedule='@daily',
     catchup=False
 
 ) as dag:
@@ -41,7 +41,7 @@ with DAG(
 
     ## Step 2: Extract the NASA API Data(APOD)-Astronomy Picture of the Day[Extract pipeline]
     ## https://api.nasa.gov/planetary/apod?api_key=your_api_key
-    extract_apod=SimpleHttpOperator(
+    extract_apod=HttpOperator(
         task_id='extract_apod',
         http_conn_id='nasa_api',  ## Connection ID Defined In Airflow For NASA API
         endpoint='planetary/apod', ## NASA API enpoint for APOD
