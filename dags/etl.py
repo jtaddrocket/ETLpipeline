@@ -19,21 +19,29 @@ with DAG(
 
     @task
     def create_table():
-        ## initialize the Postgreshook
-        postgres_hook=PostgresHook(postgres_conn_id="my_postgres_connection")
+        postgres_hook = PostgresHook(postgres_conn_id="my_postgres_connection")
+        create_table_query = """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'apod_data'
+            ) AND EXISTS (
+                SELECT 1 FROM information_schema.sequences
+                WHERE sequence_schema = 'public' AND sequence_name = 'apod_data_id_seq'
+            ) THEN
+                EXECUTE 'DROP SEQUENCE IF EXISTS public.apod_data_id_seq CASCADE';
+            END IF;
 
-        ## SQL query to create the table
-        create_table_query="""
-        CREATE TABLE IF NOT EXISTS apod_data (
-            id SERIAL PRIMARY KEY,
-            title VARCHAR(255),
-            explanation TEXT,
-            url TEXT,
-            date DATE,
-            media_type VARCHAR(50)
-        );
-
-
+            CREATE TABLE IF NOT EXISTS public.apod_data (
+                id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                title VARCHAR(255),
+                explanation TEXT,
+                url TEXT,
+                date DATE UNIQUE,
+                media_type VARCHAR(50)
+            );
+        END $$;
         """
         ## Execute the table creation query
         postgres_hook.run(create_table_query)
